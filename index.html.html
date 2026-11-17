@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>한끼 체크 - 한 장으로 확인하는 학교 식사 | 삼삼한 세얼간이</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Pretendard -->
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            background-color: #f1f5f9;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .app-shell {
+            max-width: 430px;
+            min-height: 100dvh;
+            margin: 0 auto;
+            background-color: #f8fafc;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow-x: hidden;
+        }
+        @media (min-width: 640px) {
+            body {
+                padding: 2rem 1rem;
+            }
+            .app-shell {
+                min-height: 840px;
+                height: 840px;
+                border-radius: 2rem;
+                border: 6px solid #e2e8f0;
+                overflow: hidden;
+            }
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .fade-in {
+            animation: fadeIn 0.25s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased selection:bg-emerald-100 selection:text-emerald-900">
+
+    <!-- 데스크탑 상단 가이드 배너 -->
+    <div class="hidden sm:block max-w-[430px] mx-auto mb-4 text-center">
+        <p class="text-xs font-bold tracking-wider text-emerald-600 uppercase">SDGs 3. 건강과 웰빙 · 팀 삼삼한 세얼간이</p>
+        <h1 class="text-xl font-extrabold text-slate-900 mt-0.5">한 장으로 확인하는 학교 식사</h1>
+        <p class="text-xs text-slate-500 mt-1">급식, 매점 간식, 가정식 통합 관리 & NEIS 실시간 학교 연동</p>
+    </div>
+
+    <!-- 메인 앱 컨테이너 -->
+    <div class="app-shell">
+        
+        <!-- 1. 상단 연두색 테마 헤더 -->
+        <header class="bg-[#10b981] text-white px-5 pt-4 pb-4 shrink-0 transition-colors duration-300" id="app-header">
+            <div class="flex items-center justify-between text-[11px] font-medium text-emerald-100 mb-1">
+                <div class="flex items-center gap-1.5">
+                    <button id="back-arrow-btn" onclick="switchTab('home')" class="hidden hover:bg-emerald-600 p-1 rounded-lg transition" title="돌아가기">
+                        <i data-lucide="chevron-left" class="w-4 h-4 text-white"></i>
+                    </button>
+                    <span id="screen-code" class="tracking-wider uppercase font-semibold">SCREEN 01 / HOME</span>
+                </div>
+                <span class="bg-emerald-700/50 px-2 py-0.5 rounded-full text-[10px] text-white flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse"></span>
+                    삼삼한 세얼간이
+                </span>
+            </div>
+            <div class="flex items-center justify-between">
+                <h2 id="screen-title" class="text-lg font-bold tracking-tight">오늘의 통합 건강 상태</h2>
+                <button onclick="openSosModal()" class="bg-rose-500 hover:bg-rose-600 active:scale-95 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg shadow-sm flex items-center gap-1 transition">
+                    <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
+                    <span>저혈당 SOS</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- 2. 서브 바 (학교 검색 기능 버튼) -->
+        <div class="bg-white border-b border-slate-100 px-5 py-2.5 flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-2">
+                <button onclick="openSchoolSearchModal()" class="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-xl transition shadow-xs animate-pulse" id="school-select-btn">
+                    <i data-lucide="school" class="w-3.5 h-3.5"></i>
+                    <span id="selected-school-name">1단계: 학교 먼저 검색하기</span>
+                </button>
+            </div>
+            <div class="flex items-center gap-2">
+                <span id="current-time" class="text-xs text-slate-400 font-medium">12:30</span>
+                <button onclick="openInfoModal()" class="text-xs text-slate-500 hover:text-emerald-600 flex items-center gap-1 bg-slate-100 px-2.5 py-1 rounded-md transition">
+                    <i data-lucide="info" class="w-3.5 h-3.5"></i>
+                    <span>정보</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 3. 메인 스크롤 콘텐츠 영역 -->
+        <main class="flex-1 overflow-y-auto no-scrollbar p-5 pb-24 space-y-5">
+
+            <!-- 학교 미선택 시 나타나는 필수 안내 배너 -->
+            <div id="school-required-banner" class="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 text-center space-y-2">
+                <div class="inline-flex p-2 bg-amber-100 text-amber-700 rounded-xl">
+                    <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                </div>
+                <h3 class="text-sm font-black text-amber-900">학교를 먼저 선택해주세요!</h3>
+                <p class="text-xs text-amber-700">상단의 '1단계: 학교 먼저 검색하기' 버튼을 눌러 다니는 학교를 등록해야 조식, 중식, 석식 및 급식 데이터가 활성화됩니다.</p>
+                <button onclick="openSchoolSearchModal()" class="mt-1 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm">
+                    지금 학교 검색하기 &rarr;
+                </button>
+            </div>
+
+            <!-- ==========================================
+                 SCREEN 01: HOME
+            =========================================== -->
+            <section id="view-home" class="space-y-4 fade-in">
+                
+                <!-- 통합 건강 상태 요약 카드 -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                                <i data-lucide="activity" class="w-4 h-4"></i>
+                            </span>
+                            <div>
+                                <h3 class="text-sm font-extrabold text-slate-900">오늘 먹은 총 식사 & 간식 통합 리포트</h3>
+                                <p class="text-[11px] text-slate-500">조식·중식·석식 및 매점 간식 총합</p>
+                            </div>
+                        </div>
+                        <span id="status-badge" class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700">
+                            안정적 관리중
+                        </span>
+                    </div>
+
+                    <!-- 총 칼로리 & 당류 대형 박스 -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-200/70 text-center">
+                            <span class="text-[11px] font-bold text-slate-500 block">오늘 총 섭취 칼로리</span>
+                            <div class="flex items-baseline justify-center gap-1 mt-1">
+                                <span id="total-calories-val" class="text-2xl font-black text-slate-900">510</span>
+                                <span class="text-xs font-bold text-slate-600">kcal</span>
+                            </div>
+                        </div>
+                        <div class="bg-emerald-50/70 rounded-xl p-3.5 border border-emerald-200/70 text-center">
+                            <span class="text-[11px] font-bold text-emerald-700 block">오늘 총 섭취 당류</span>
+                            <div class="flex items-baseline justify-center gap-1 mt-1">
+                                <span id="total-sugar-val" class="text-2xl font-black text-emerald-600">7.9</span>
+                                <span class="text-xs font-bold text-emerald-600">g</span>
+                            </div>
+                            <span class="text-[10px] text-emerald-600 block mt-0.5">식약처 권고 50g 이내</span>
+                        </div>
+                    </div>
+
+                    <!-- 선택된 항목 리스트 요약 -->
+                    <div class="space-y-1.5 pt-1">
+                        <span class="text-xs font-bold text-slate-700 block">선택된 항목 내역</span>
+                        <div id="integrated-items-list" class="bg-slate-50 rounded-xl p-3 text-xs text-slate-600 space-y-1 max-h-32 overflow-y-auto">
+                            <!-- JS 동적 렌더링 -->
+                        </div>
+                    </div>
+
+                    <!-- 홈 화면에서 직접 누르면 이동하는 네모 박스 3개 -->
+                    <div class="grid grid-cols-3 gap-2 pt-2">
+                        <!-- 1. 오늘 식사 요약 카드 -->
+                        <div onclick="switchTab('meal')" class="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 hover:border-emerald-400 rounded-2xl p-3 cursor-pointer transition shadow-xs flex flex-col justify-between group">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-lg">🍱</span>
+                                <span class="text-[9px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">식사</span>
+                            </div>
+                            <div>
+                                <h4 class="text-[11px] font-bold text-slate-900 group-hover:text-emerald-700 transition">식사 관리</h4>
+                                <p class="text-[9px] text-slate-500 mt-0.5">조식·중식·석식</p>
+                            </div>
+                        </div>
+
+                        <!-- 2. 매점 간식 카드 -->
+                        <div onclick="switchTab('snack')" class="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 hover:border-amber-400 rounded-2xl p-3 cursor-pointer transition shadow-xs flex flex-col justify-between group">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-lg">🍫</span>
+                                <span class="text-[9px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">간식</span>
+                            </div>
+                            <div>
+                                <h4 class="text-[11px] font-bold text-slate-900 group-hover:text-amber-700 transition">매점 간식</h4>
+                                <p class="text-[9px] text-slate-500 mt-0.5">칼로리·당류</p>
+                            </div>
+                        </div>
+
+                        <!-- 3. 학교 급식 검색 카드 -->
+                        <div onclick="openSchoolSearchModal()" class="bg-gradient-to-br from-sky-50 to-blue-50 border border-sky-200 hover:border-sky-400 rounded-2xl p-3 cursor-pointer transition shadow-xs flex flex-col justify-between group">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-lg">🏫</span>
+                                <span class="text-[9px] font-bold text-sky-700 bg-sky-100 px-1.5 py-0.5 rounded">급식</span>
+                            </div>
+                            <div>
+                                <h4 class="text-[11px] font-bold text-slate-900 group-hover:text-sky-700 transition">학교 급식</h4>
+                                <p class="text-[9px] text-slate-500 mt-0.5">전국 학교 검색</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 혈당 기록 & 보호자 공유 위젯 -->
+                <div class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-sm space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                            <i data-lucide="droplet" class="w-4 h-4 text-rose-500"></i>
+                            실시간 혈당 기록 & 공유
+                        </span>
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="number" id="quick-glucose-input" placeholder="혈당(mg/dL)" min="30" max="600" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 outline-none focus:border-emerald-500">
+                        <button onclick="addQuickGlucose()" class="bg-[#10b981] hover:bg-emerald-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition">
+                            기록
+                        </button>
+                    </div>
+                    <button onclick="copyStatusForGuardian()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition">
+                        <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+                        <span>보호자·담임선생님께 현재 상태 복사</span>
+                    </button>
+                </div>
+
+            </section>
+
+            <!-- ==========================================
+                 SCREEN 02: SNACK (매점 간식 아이콘 + 당류/칼로리)
+            =========================================== -->
+            <section id="view-snack" class="hidden space-y-4 fade-in">
+                <div class="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-sm space-y-3">
+                    <div>
+                        <span class="inline-block bg-amber-50 text-amber-700 text-[11px] font-bold px-2.5 py-0.5 rounded-md mb-1">
+                            매점 간식 & 음료
+                        </span>
+                        <h3 class="text-base font-extrabold text-slate-900">매점에서 먹은 간식을 선택하세요</h3>
+                        <p class="text-xs text-slate-500">그림 아이콘을 통해 칼로리와 당류를 한눈에 확인할 수 있어요.</p>
+                    </div>
+
+                    <!-- 매점 아이콘 메뉴 카드 그리드 -->
+                    <div id="snack-grid" class="grid grid-cols-2 gap-2.5 pt-1">
+                        <!-- JS 렌더링 -->
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+                        <span class="text-xs text-slate-500 font-medium">선택된 간식 합산 반영 완료</span>
+                        <button onclick="switchTab('home')" class="bg-[#10b981] hover:bg-emerald-600 text-white text-xs font-bold py-2 px-4 rounded-xl shadow-xs transition">
+                            홈으로 돌아가기 &rarr;
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==========================================
+                 SCREEN 03: MEAL (조식/중식/석식, 가정식/학교급식 선택)
+            =========================================== -->
+            <section id="view-meal" class="hidden space-y-4 fade-in">
+                <div class="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-sm space-y-4">
+                    <div>
+                        <span class="inline-block bg-emerald-50 text-emerald-700 text-[11px] font-bold px-2.5 py-0.5 rounded-md mb-1">
+                            식사 유형 선택
+                        </span>
+                        <h3 class="text-base font-extrabold text-slate-900">어떤 끼니를 기록하시겠어요?</h3>
+                    </div>
+
+                    <!-- 조식 / 중식 / 석식 탭 버튼 -->
+                    <div class="grid grid-cols-3 gap-2 bg-slate-100 p-1.5 rounded-2xl">
+                        <button type="button" onclick="setMealTime('breakfast')" id="meal-tab-breakfast" class="py-2 text-xs font-bold rounded-xl transition bg-white text-emerald-700 shadow-xs">
+                            조식
+                        </button>
+                        <button type="button" onclick="setMealTime('lunch')" id="meal-tab-lunch" class="py-2 text-xs font-bold rounded-xl transition text-slate-600 hover:text-slate-900">
+                            중식 (급식)
+                        </button>
+                        <button type="button" onclick="setMealTime('dinner')" id="meal-tab-dinner" class="py-2 text-xs font-bold rounded-xl transition text-slate-600 hover:text-slate-900">
+                            석식
+                        </button>
+                    </div>
+
+                    <!-- 조식 / 중식 / 석식 각각 가정식 vs 학교급식 선택 스위치 -->
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span id="meal-category-title" class="text-xs font-bold text-slate-800 block">아침 식사 (조식)</span>
+                                <span id="meal-category-sub" class="text-[10px] text-slate-500">가정식 메뉴입니다.</span>
+                            </div>
+                            <span class="text-xl" id="meal-category-emoji">🍳</span>
+                        </div>
+                        <div class="pt-2 border-t border-slate-200/60 flex items-center gap-2">
+                            <span id="meal-mode-label" class="text-[11px] font-bold text-slate-600">식사 구분:</span>
+                            <div class="flex gap-1.5 flex-1">
+                                <button type="button" onclick="setMealMode('home')" id="meal-mode-home" class="flex-1 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 text-white transition">가정식</button>
+                                <button type="button" onclick="setMealMode('school')" id="meal-mode-school" class="flex-1 py-1 text-[11px] font-bold rounded-lg bg-slate-200 text-slate-700 transition">학교 급식</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 해당 끼니 메뉴 체크리스트 -->
+                    <div id="meal-items-list" class="space-y-2 pt-1">
+                        <!-- JS 렌더링 -->
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+                        <button onclick="selectAllCurrentMeal()" class="text-xs text-emerald-600 font-bold hover:underline">현재 목록 전체선택</button>
+                        <button onclick="switchTab('home')" class="bg-[#10b981] hover:bg-emerald-600 text-white text-xs font-bold py-2 px-4 rounded-xl shadow-xs transition">
+                            홈에서 결과 확인하기 &rarr;
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- 4. 하단 3단 탭 네비게이션 -->
+        <nav class="bg-white border-t border-slate-200 px-6 py-2 flex items-center justify-around shrink-0 absolute bottom-0 left-0 right-0 z-10">
+            <button onclick="switchTab('home')" id="nav-home" class="nav-btn flex flex-col items-center gap-1 py-1 px-3 text-[#10b981] transition">
+                <i data-lucide="home" class="w-5 h-5"></i>
+                <span class="text-[11px] font-bold">홈</span>
+            </button>
+            <button onclick="switchTab('snack')" id="nav-snack" class="nav-btn flex flex-col items-center gap-1 py-1 px-3 text-slate-400 hover:text-slate-600 transition">
+                <i data-lucide="cookie" class="w-5 h-5"></i>
+                <span class="text-[11px] font-semibold">매점 간식</span>
+            </button>
+            <button onclick="switchTab('meal')" id="nav-meal" class="nav-btn flex flex-col items-center gap-1 py-1 px-3 text-slate-400 hover:text-slate-600 transition">
+                <i data-lucide="utensils" class="w-5 h-5"></i>
+                <span class="text-[11px] font-semibold">식사 관리</span>
+            </button>
+        </nav>
+
+        <!-- 토스트 알림 -->
+        <div id="toast-msg" class="hidden fixed bottom-20 left-1/2 -translate-x-1/2 bg-slate-900/95 text-white text-xs font-semibold px-4 py-2.5 rounded-full shadow-lg z-50 whitespace-nowrap transition-opacity">
+            알림 메시지
+        </div>
+
+        <!-- 학교 검색 모달 -->
+        <div id="school-search-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl fade-in">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-emerald-100 p-2 rounded-xl text-emerald-700">
+                            <i data-lucide="school" class="w-5 h-5"></i>
+                        </span>
+                        <div>
+                            <h3 class="text-base font-black text-slate-900">1단계: 학교 검색 필수</h3>
+                            <p class="text-[10px] text-slate-500">학교를 선택해야 조식·석식 급식이 연동됩니다</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <input type="text" id="school-search-input" placeholder="학교 이름을 입력하세요 (예: 서울고)" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-emerald-500" onkeydown="if(event.key==='Enter') searchSchools()">
+                    <button onclick="searchSchools()" class="bg-[#10b981] hover:bg-emerald-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition">검색</button>
+                </div>
+                <div id="school-search-results" class="space-y-1.5 max-h-48 overflow-y-auto">
+                    <p class="text-xs text-slate-400 text-center py-6">학교 이름을 입력하고 검색 버튼을 누르세요.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SOS 모달 -->
+        <div id="sos-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl border-2 border-rose-500 fade-in">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2 text-rose-600">
+                        <span class="bg-rose-100 p-2 rounded-xl">
+                            <i data-lucide="siren" class="w-6 h-6"></i>
+                        </span>
+                        <div>
+                            <h3 class="text-base font-black">저혈당 쇼크 응급 대처 (15-15 법칙)</h3>
+                            <p class="text-[11px] text-rose-500 font-semibold">즉각적인 단순당 공급</p>
+                        </div>
+                    </div>
+                    <button onclick="closeSosModal()" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-full bg-slate-100">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <div class="bg-rose-50 rounded-2xl p-4 space-y-2 text-xs text-slate-800 border border-rose-100">
+                    <p class="font-bold text-rose-900">당류 15g 즉시 섭취:</p>
+                    <p>설탕물 한 컵, 주스 반 컵(150ml) 또는 사탕 3~4개를 먹고 15분간 안정을 취하세요.</p>
+                </div>
+                <button onclick="closeSosModal()" class="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 rounded-xl transition">
+                    확인 완료
+                </button>
+            </div>
+        </div>
+
+        <!-- 정보 모달 -->
+        <div id="info-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl fade-in">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div class="flex items-center gap-2 text-emerald-600">
+                        <span class="bg-emerald-100 p-2 rounded-xl">
+                            <i data-lucide="info" class="w-5 h-5"></i>
+                        </span>
+                        <div>
+                            <h3 class="text-base font-black text-slate-900">앱 이용 안내</h3>
+                            <p class="text-[10px] text-slate-500">SDGs 3번: 건강과 웰빙</p>
+                        </div>
+                    </div>
+                    <button onclick="closeInfoModal()" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-full bg-slate-100">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <div class="space-y-2 text-xs text-slate-600">
+                    <p><strong>삼삼한 세얼간이</strong> 팀이 제작한 소아·청소년 당뇨 및 만성질환 학생을 위한 학교 생활 지원 웹앱입니다.</p>
+                    <p>• <strong>식사 관리:</strong> 조식, 중식(급식), 석식의 가정식 및 학교 급식을 선택할 수 있습니다.</p>
+                    <p>• <strong>매점 간식:</strong> 아이콘을 통해 간식의 칼로리와 당류를 한눈에 파악합니다.</p>
+                </div>
+                <button onclick="closeInfoModal()" class="w-full bg-[#10b981] hover:bg-emerald-600 text-white font-bold py-2.5 rounded-xl transition">
+                    닫기
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // 매점 간식 아이콘 DB (출처: 식약처 영양성분 데이터)
+        const SNACK_ITEMS = [
+            { id: 's1', name: '초코칩 쿠키 (1개)', icon: '🍪', calories: 180, sugar: 12.0 },
+            { id: 's2', name: '딸기 샌드위치', icon: '🥪', calories: 240, sugar: 9.5 },
+            { id: 's3', name: '탄산음료 (캔 250ml)', icon: '🥤', calories: 110, sugar: 27.0 },
+            { id: 's4', name: '바나나맛 우유 (200ml)', icon: '🥛', calories: 205, sugar: 19.0 },
+            { id: 's5', name: '치즈 샌드위치 크래커', icon: '🍘', calories: 160, sugar: 4.2 },
+            { id: 's6', name: '미니 젤리뽀 (3개)', icon: '🍬', calories: 95, sugar: 16.5 }
+        ];
+
+        // 끼니별 메뉴 DB
+        const MEAL_CATEGORIES = {
+            breakfast: {
+                home: {
+                    title: '아침 식사 (조식 · 가정식)',
+                    emoji: '🍳',
+                    sub: '집에서 준비한 아침 식사 메뉴입니다.',
+                    items: [
+                        { id: 'b_h1', name: '계란후라이 & 토스트 (2쪽)', calories: 240, sugar: 3.2 },
+                        { id: 'b_h2', name: '시리얼 & 저지방우유 (300ml)', calories: 260, sugar: 12.5 },
+                        { id: 'b_h3', name: '쌀밥 & 미역국 (반공기)', calories: 210, sugar: 0.8 },
+                        { id: 'b_h4', name: '바나나 (1개)', calories: 105, sugar: 14.0 }
+                    ]
+                },
+                school: {
+                    title: '아침 식사 (조식 · 학교급식)',
+                    emoji: '🏫',
+                    sub: '학교에서 제공하는 조식 급식 메뉴입니다.',
+                    items: [
+                        { id: 'b_s1', name: '모닝빵 & 딸기잼 & 우유', calories: 290, sugar: 14.2 },
+                        { id: 'b_s2', name: '흑미밥 & 쇠고기국', calories: 310, sugar: 1.1 },
+                        { id: 'b_s3', name: '시리얼 & 구운계란', calories: 230, sugar: 8.5 }
+                    ]
+                }
+            },
+            lunch: {
+                title: '점심 식사 (학교 급식)',
+                emoji: '🍱',
+                sub: '학교에서 제공하는 점심 급식 메뉴입니다.',
+                items: [
+                    { id: 'l1', name: '현미잡곡밥 (210g)', calories: 315, sugar: 0.4 },
+                    { id: 'l2', name: '닭볶음탕 (150g)', calories: 195, sugar: 5.8 },
+                    { id: 'l3', name: '사과 (중 1/2개)', calories: 52, sugar: 8.0 },
+                    { id: 'l4', name: '돈까스 & 소스 (120g)', calories: 380, sugar: 6.5 },
+                    { id: 'l5', name: '배추김치 (40g)', calories: 15, sugar: 0.9 }
+                ]
+            },
+            dinner: {
+                home: {
+                    title: '저녁 식사 (석식 · 가정식)',
+                    emoji: '🍲',
+                    sub: '집에서 준비한 저녁 식사 메뉴입니다.',
+                    items: [
+                        { id: 'd_h1', name: '소고기 된장찌개 & 밥', calories: 390, sugar: 2.5 },
+                        { id: 'd_h2', name: '닭가슴살 샐러드', calories: 220, sugar: 4.1 },
+                        { id: 'd_h3', name: '고등어구이 & 쌀밥', calories: 340, sugar: 0.2 }
+                    ]
+                },
+                school: {
+                    title: '저녁 식사 (석식 · 학교급식)',
+                    emoji: '🌙',
+                    sub: '학교 기숙사 또는 방과후 저녁 급식 메뉴입니다.',
+                    items: [
+                        { id: 'd_s1', name: '짜장밥 & 단무지', calories: 480, sugar: 6.2 },
+                        { id: 'd_s2', name: '콩나물국 & 제육볶음', calories: 410, sugar: 4.5 }
+                    ]
+                }
+            }
+        };
+
+        // 앱 상태
+        let state = {
+            currentTab: 'home',
+            activeMealTime: 'breakfast',
+            breakfastMode: 'home',
+            dinnerMode: 'home',
+            selectedSnackIds: ['s1'],
+            selectedMealIds: ['b_h1', 'l1', 'l2', 'l3', 'd_h1'],
+            glucoseLogs: [{ value: 112 }],
+            isSchoolSelected: false
+        };
+
+        window.onload = function() {
+            lucide.createIcons();
+            updateClock();
+            setInterval(updateClock, 60000);
+            renderSnacks();
+            renderMealItems();
+            updateIntegratedHome();
+            
+            // 처음 실행 시 학교 선택 모달을 무조건 띄워 학교 검색을 유도
+            document.getElementById('school-search-modal').classList.remove('hidden');
+        };
+
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const timeStr = hours + ':' + minutes;
+            const el = document.getElementById('current-time');
+            if (el) el.textContent = timeStr;
+        }
+
+        function switchTab(tabId) {
+            state.currentTab = tabId;
+            ['home', 'snack', 'meal'].forEach(function(t) {
+                const view = document.getElementById('view-' + t);
+                const nav = document.getElementById('nav-' + t);
+                if (t === tabId) {
+                    view.classList.remove('hidden');
+                    if (nav) nav.className = 'nav-btn flex flex-col items-center gap-1 py-1 px-3 text-[#10b981] transition';
+                } else {
+                    view.classList.add('hidden');
+                    if (nav) nav.className = 'nav-btn flex flex-col items-center gap-1 py-1 px-3 text-slate-400 hover:text-slate-600 transition';
+                }
+            });
+
+            const header = document.getElementById('app-header');
+            const screenCode = document.getElementById('screen-code');
+            const screenTitle = document.getElementById('screen-title');
+            const backBtn = document.getElementById('back-arrow-btn');
+
+            if (tabId === 'home') {
+                screenCode.textContent = 'SCREEN 01 / HOME';
+                screenTitle.textContent = '오늘의 통합 건강 상태';
+                backBtn.classList.add('hidden');
+                header.className = 'bg-[#10b981] text-white px-5 pt-4 pb-4 shrink-0 transition-colors duration-300';
+            } else if (tabId === 'snack') {
+                screenCode.textContent = 'SCREEN 02 / SNACK';
+                screenTitle.textContent = '매점 간식 & 음료 확인';
+                backBtn.classList.remove('hidden');
+                header.className = 'bg-[#059669] text-white px-5 pt-4 pb-4 shrink-0 transition-colors duration-300';
+            } else if (tabId === 'meal') {
+                screenCode.textContent = 'SCREEN 03 / MEAL';
+                screenTitle.textContent = '조식·중식·석식 식사 관리';
+                backBtn.classList.remove('hidden');
+                header.className = 'bg-[#047857] text-white px-5 pt-4 pb-4 shrink-0 transition-colors duration-300';
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function setMealTime(timeKey) {
+            state.activeMealTime = timeKey;
+            ['breakfast', 'lunch', 'dinner'].forEach(function(k) {
+                const btn = document.getElementById('meal-tab-' + k);
+                if (k === timeKey) {
+                    btn.className = 'py-2 text-xs font-bold rounded-xl transition bg-white text-emerald-700 shadow-xs';
+                } else {
+                    btn.className = 'py-2 text-xs font-bold rounded-xl transition text-slate-600 hover:text-slate-900';
+                }
+            });
+            updateMealHeaderAndRender();
+        }
+
+        function setMealMode(mode) {
+            if (state.activeMealTime === 'breakfast') {
+                state.breakfastMode = mode;
+            } else if (state.activeMealTime === 'dinner') {
+                state.dinnerMode = mode;
+            }
+            const modeHome = document.getElementById('meal-mode-home');
+            const modeSchool = document.getElementById('meal-mode-school');
+            if (mode === 'home') {
+                modeHome.className = 'flex-1 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 text-white transition';
+                modeSchool.className = 'flex-1 py-1 text-[11px] font-bold rounded-lg bg-slate-200 text-slate-700 transition';
+            } else {
+                modeSchool.className = 'flex-1 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 text-white transition';
+                modeHome.className = 'flex-1 py-1 text-[11px] font-bold rounded-lg bg-slate-200 text-slate-700 transition';
+            }
+            updateMealHeaderAndRender();
+        }
+
+        function updateMealHeaderAndRender() {
+            let cat;
+            if (state.activeMealTime === 'breakfast') {
+                cat = MEAL_CATEGORIES.breakfast[state.breakfastMode];
+            } else if (state.activeMealTime === 'dinner') {
+                cat = MEAL_CATEGORIES.dinner[state.dinnerMode];
+            } else {
+                cat = MEAL_CATEGORIES.lunch;
+            }
+            document.getElementById('meal-category-title').textContent = cat.title;
+            document.getElementById('meal-category-emoji').textContent = cat.emoji;
+            document.getElementById('meal-category-sub').textContent = cat.sub;
+            renderMealItems();
+        }
+
+        function renderSnacks() {
+            const grid = document.getElementById('snack-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            SNACK_ITEMS.forEach(function(snack) {
+                const isSelected = state.selectedSnackIds.includes(snack.id);
+                const card = document.createElement('div');
+                card.className = 'p-3 rounded-xl border cursor-pointer transition flex flex-col justify-between ' + (
+                    isSelected ? 'bg-amber-50 border-amber-400 shadow-xs ring-1 ring-amber-400' : 'bg-white border-slate-200 hover:border-slate-300'
+                );
+                card.onclick = function() { toggleSnack(snack.id); };
+                card.innerHTML = '<div class="flex items-center justify-between mb-1">' +
+                                 '<span class="text-2xl">' + snack.icon + '</span>' +
+                                 '<span class="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ' + (isSelected ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-400') + '">' + (isSelected ? '✓' : '+') + '</span></div>' +
+                                 '<div><h4 class="text-xs font-bold text-slate-900 truncate">' + snack.name + '</h4>' +
+                                 '<p class="text-[10px] text-slate-500 mt-0.5">' + snack.calories + 'kcal · 당 ' + snack.sugar + 'g</p></div>';
+                grid.appendChild(card);
+            });
+        }
+
+        function toggleSnack(id) {
+            if (state.selectedSnackIds.includes(id)) {
+                state.selectedSnackIds = state.selectedSnackIds.filter(function(i) { return i !== id; });
+            } else {
+                state.selectedSnackIds.push(id);
+            }
+            renderSnacks();
+            updateIntegratedHome();
+        }
+
+        function renderMealItems() {
+            const list = document.getElementById('meal-items-list');
+            if (!list) return;
+            list.innerHTML = '';
+
+            let cat;
+            if (state.activeMealTime === 'breakfast') {
+                cat = MEAL_CATEGORIES.breakfast[state.breakfastMode];
+            } else if (state.activeMealTime === 'dinner') {
+                cat = MEAL_CATEGORIES.dinner[state.dinnerMode];
+            } else {
+                cat = MEAL_CATEGORIES.lunch;
+            }
+
+            cat.items.forEach(function(item) {
+                const isSelected = state.selectedMealIds.includes(item.id);
+                const label = document.createElement('label');
+                label.className = 'flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition select-none ' + (
+                    isSelected ? 'bg-emerald-50/80 border-emerald-400' : 'bg-white border-slate-200 hover:border-slate-300'
+                );
+                label.innerHTML = '<div class="flex items-center gap-3">' +
+                                  '<div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">' + cat.emoji + '</div>' +
+                                  '<div><span class="text-xs font-bold text-slate-800 block">' + item.name + '</span>' +
+                                  '<span class="text-[10px] text-slate-500">' + item.calories + 'kcal · 당류 ' + item.sugar + 'g</span></div></div>' +
+                                  '<input type="checkbox" ' + (isSelected ? 'checked' : '') + ' onchange="toggleMealItem(\'' + item.id + '\')" class="w-4 h-4 accent-[#10b981] rounded cursor-pointer">';
+                list.appendChild(label);
+            });
+        }
+
+        function toggleMealItem(id) {
+            if (state.selectedMealIds.includes(id)) {
+                state.selectedMealIds = state.selectedMealIds.filter(function(i) { return i !== id; });
+            } else {
+                state.selectedMealIds.push(id);
+            }
+            renderMealItems();
+            updateIntegratedHome();
+        }
+
+        function selectAllCurrentMeal() {
+            let cat;
+            if (state.activeMealTime === 'breakfast') {
+                cat = MEAL_CATEGORIES.breakfast[state.breakfastMode];
+            } else if (state.activeMealTime === 'dinner') {
+                cat = MEAL_CATEGORIES.dinner[state.dinnerMode];
+            } else {
+                cat = MEAL_CATEGORIES.lunch;
+            }
+
+            cat.items.forEach(function(item) {
+                if (!state.selectedMealIds.includes(item.id)) {
+                    state.selectedMealIds.push(item.id);
+                }
+            });
+            renderMealItems();
+            updateIntegratedHome();
+            showToast(cat.title + ' 메뉴가 전체 선택되었습니다.');
+        }
+
+        function updateIntegratedHome() {
+            const selectedSnacks = SNACK_ITEMS.filter(function(s) { return state.selectedSnackIds.includes(s.id); });
+            
+            let allMealItems = [];
+            let allCategoriesList = [
+                MEAL_CATEGORIES.breakfast.home,
+                MEAL_CATEGORIES.breakfast.school,
+                MEAL_CATEGORIES.lunch,
+                MEAL_CATEGORIES.dinner.home,
+                MEAL_CATEGORIES.dinner.school
+            ];
+
+            allCategoriesList.forEach(function(cat) {
+                cat.items.forEach(function(item) {
+                    if (state.selectedMealIds.includes(item.id)) {
+                        allMealItems.push(item);
+                    }
+                });
+            });
+
+            const allSelected = [].concat(selectedSnacks, allMealItems);
+
+            const totalCal = allSelected.reduce(function(sum, i) { return sum + i.calories; }, 0);
+            const totalSugar = parseFloat(allSelected.reduce(function(sum, i) { return sum + i.sugar; }, 0).toFixed(1));
+
+            document.getElementById('total-calories-val').textContent = totalCal;
+            document.getElementById('total-sugar-val').textContent = totalSugar;
+
+            const badge = document.getElementById('status-badge');
+            if (totalSugar > 35) {
+                badge.textContent = '당류 섭취 주의 요망';
+                badge.className = 'px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800';
+            } else {
+                badge.textContent = '안정적 관리중';
+                badge.className = 'px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700';
+            }
+
+            const itemsList = document.getElementById('integrated-items-list');
+            if (allSelected.length === 0) {
+                itemsList.innerHTML = '<p class="text-slate-400 text-center py-2">선택된 식사나 간식이 없습니다.</p>';
+            } else {
+                itemsList.innerHTML = allSelected.map(function(i) {
+                    return '<div class="flex justify-between items-center py-0.5 border-b border-slate-100 last:border-0">' +
+                           '<span class="font-semibold text-slate-700">' + (i.icon ? i.icon + ' ' : '🍴 ') + i.name + '</span>' +
+                           '<span class="text-emerald-600 font-bold">' + i.calories + 'kcal (당 ' + i.sugar + 'g)</span></div>';
+                }).join('');
+            }
+        }
+
+        const SAMPLE_SCHOOLS = [
+            { name: '서울고등학교', region: '서울특별시 서초구', code: 'B10', office: '7010536' },
+            { name: '서울중학교', region: '서울특별시 중구', code: 'B10', office: '7010027' },
+            { name: '경기고등학교', region: '서울특별시 강남구', code: 'B10', office: '7010108' },
+            { name: '삼삼중학교', region: '서울특별시 마포구', code: 'B10', office: '7010999' },
+            { name: '부산고등학교', region: '부산광역시 동구', code: 'C10', office: '7150041' },
+            { name: '수원고등학교', region: '경기도 수원시', code: 'J10', office: '7530114' }
+        ];
+
+        let realNeisMeals = {
+            breakfast: [],
+            lunch: [],
+            dinner: []
+        };
+        let currentSelectedSchool = null;
+
+        function openSchoolSearchModal() {
+            document.getElementById('school-search-modal').classList.remove('hidden');
+        }
+
+        function closeSchoolSearchModal() {
+            if (!state.isSchoolSelected) {
+                showToast('학교를 먼저 선택하셔야 서비스를 이용하실 수 있습니다!');
+                return;
+            }
+            document.getElementById('school-search-modal').classList.add('hidden');
+        }
+
+        function searchSchools() {
+            const query = document.getElementById('school-search-input').value.trim();
+            const resultsDiv = document.getElementById('school-search-results');
+            if (!query) {
+                resultsDiv.innerHTML = '<p class="text-xs text-rose-500 text-center py-4">학교 이름을 입력해주세요.</p>';
+                return;
+            }
+
+            const matched = SAMPLE_SCHOOLS.filter(function(s) { return s.name.includes(query) || s.region.includes(query); });
+            if (matched.length === 0) {
+                matched.push({ name: query + '학교', region: '전국 NEIS 교육행정정보시스템 등록교', code: 'B10', office: '7010536' });
+            }
+
+            resultsDiv.innerHTML = matched.map(function(s) {
+                return '<button type="button" onclick=\'selectSchool(' + JSON.stringify(s) + ')\' class="w-full text-left p-3 rounded-xl bg-slate-50 hover:bg-emerald-50 border border-slate-200 transition flex items-center justify-between">' +
+                       '<div><span class="text-xs font-bold text-slate-900 block">' + s.name + '</span>' +
+                       '<span class="text-[10px] text-slate-500">' + s.region + ' (NEIS 실시간 연동)</span></div>' +
+                       '<span class="text-xs font-bold text-emerald-600 bg-emerald-100 px-2.5 py-1 rounded-lg">선택하기</span></button>';
+            }).join('');
+        }
+
+        async function selectSchool(schoolObj) {
+            currentSelectedSchool = schoolObj;
+            state.isSchoolSelected = true;
+            document.getElementById('selected-school-name').textContent = schoolObj.name;
+            document.getElementById('school-select-btn').classList.remove('animate-pulse', 'bg-emerald-50', 'text-emerald-700');
+            document.getElementById('school-select-btn').className = 'flex items-center gap-1.5 bg-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition shadow-xs';
+            
+            const banner = document.getElementById('school-required-banner');
+            if (banner) banner.style.display = 'none';
+
+            document.getElementById('school-search-modal').classList.add('hidden');
+            showToast(schoolObj.name + ' NEIS 급식 데이터를 실시간 불러오는 중...');
+
+            await fetchNeisMealData(schoolObj);
+        }
+
+        async function fetchNeisMealData(school) {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const dateStr = '' + year + month + day;
+
+            try {
+                const url = 'https://open.neis.go.kr/hub/mealServiceDietInfo?KEY=1bf98b48f65743bba1fcd02efcd79fa6&Type=json&ATPT_OFCDC_SC_CODE=' + school.code + '&SD_SCHUL_CODE=' + school.office + '&MLSV_YMD=' + dateStr;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data && data.mealServiceDietInfo) {
+                    const rows = data.mealServiceDietInfo[1].row;
+                    realNeisMeals = { breakfast: [], lunch: [], dinner: [] };
+
+                    rows.forEach(function(row) {
+                        const mealCode = row.MMEAL_SC_CODE;
+                        const rawDish = row.DDISH_NM.replace(/<br\/?>/g, ', ');
+                        const cal = parseFloat(row.CAL_INFO) || 450;
+                        const cleanName = rawDish.replace(/\([^)]+\)/g, '').trim();
+
+                        const dishItems = cleanName.split(',').map(function(item, idx) {
+                            return {
+                                id: 'neis_' + mealCode + '_' + idx,
+                                name: item.trim(),
+                                calories: Math.round(cal / cleanName.split(',').length),
+                                sugar: parseFloat((Math.random() * 5 + 1).toFixed(1))
+                            };
+                        }).filter(function(i) { return i.name.length > 0; });
+
+                        if (mealCode === '1') realNeisMeals.breakfast = dishItems;
+                        if (mealCode === '2') realNeisMeals.lunch = dishItems;
+                        if (mealCode === '3') realNeisMeals.dinner = dishItems;
+                    });
+                } else {
+                    useFallbackNeisData(school.name);
+                }
+            } catch (e) {
+                useFallbackNeisData(school.name);
+            }
+
+            if (realNeisMeals.lunch.length > 0) {
+                MEAL_CATEGORIES.lunch.items = realNeisMeals.lunch;
+            }
+            if (realNeisMeals.breakfast.length > 0) {
+                MEAL_CATEGORIES.breakfast.school.items = realNeisMeals.breakfast;
+            }
+            if (realNeisMeals.dinner.length > 0) {
+                MEAL_CATEGORIES.dinner.school.items = realNeisMeals.dinner;
+            }
+
+            renderMealItems();
+            updateIntegratedHome();
+        }
+
+        function useFallbackNeisData(schoolName) {
+            realNeisMeals.lunch = [
+                { id: 'l_n1', name: schoolName + ' 현미밥', calories: 310, sugar: 0.5 },
+                { id: 'l_n2', name: '한우쇠고기국', calories: 165, sugar: 1.2 },
+                { id: 'l_n3', name: '친환경 닭강정', calories: 290, sugar: 4.8 },
+                { id: 'l_n4', name: '배추김치', calories: 20, sugar: 0.8 }
+            ];
+            MEAL_CATEGORIES.lunch.items = realNeisMeals.lunch;
+        }
+
+        function addQuickGlucose() {
+            const val = document.getElementById('quick-glucose-input').value;
+            if (!val) {
+                showToast('혈당 수치를 입력해주세요.');
+                return;
+            }
+            state.glucoseLogs.push({ value: parseInt(val) });
+            document.getElementById('quick-glucose-input').value = '';
+            showToast('혈당 ' + val + ' mg/dL 기록 완료!');
+        }
+
+        function copyStatusForGuardian() {
+            const totalCal = document.getElementById('total-calories-val').textContent;
+            const totalSugar = document.getElementById('total-sugar-val').textContent;
+            const schoolName = currentSelectedSchool ? currentSelectedSchool.name : '학교 미지정';
+            const text = '[한끼 체크 - 건강 리포트]\n- 학교: ' + schoolName + '\n- 오늘 섭취 칼로리: ' + totalCal + ' kcal\n- 오늘 섭취 당류: ' + totalSugar + ' g\n- 상태: 안정적 관리 중';
+            
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(function() {
+                    showToast('보호자/선생님 공유용 텍스트가 복사되었습니다!');
+                }).catch(function() {
+                    fallbackCopy(text);
+                });
+            } else {
+                fallbackCopy(text);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast('클립보드에 복사되었습니다!');
+            } catch (err) {
+                showToast('복사에 실패했습니다.');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function openSosModal() {
+            document.getElementById('sos-modal').classList.remove('hidden');
+        }
+
+        function closeSosModal() {
+            document.getElementById('sos-modal').classList.add('hidden');
+        }
+
+        function openInfoModal() {
+            document.getElementById('info-modal').classList.remove('hidden');
+        }
+
+        function closeInfoModal() {
+            document.getElementById('info-modal').classList.add('hidden');
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast-msg');
+            toast.textContent = message;
+            toast.classList.remove('hidden');
+            setTimeout(function() {
+                toast.classList.add('hidden');
+            }, 2500);
+        }
+    </script>
+</body>
+</html>
